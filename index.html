@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <meta name="theme-color" content="#b5838d"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Ménage"/>
+  <title>Ménage Hotel — Housekeeping</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" href="assets/icon-192.png"/>
+  <link rel="apple-touch-icon" href="assets/icon-192.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div id="app">
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-monogram">MH</div>
+        <h1>Ménage Hotel</h1>
+        <p class="brand-sub">Housekeeping &amp; Ménage</p>
+      </div>
+      <label class="field-label">Código de Gouvernante</label>
+      <input type="password" id="login-input" placeholder="••••••••" autocomplete="current-password"/>
+      <button class="btn-primary" onclick="doLogin()">Ingresar</button>
+      <p class="err" id="login-err">Código incorrecto.</p>
+      <div class="setup-link"><a onclick="openSetupCode()">Configurar código de acceso</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="screen-main" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-mono">MH</span>
+      <div>
+        <span class="topbar-title">Ménage Hotel</span>
+        <div class="topbar-gov" id="topbar-gov"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="openSearch()" title="Buscar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      <button class="btn-sm" onclick="openAdvanceDay()">Avanzar día</button>
+      <button class="btn-sm rose" onclick="exportPDF()">PDF</button>
+      <button class="btn-sm ghost" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" id="tab-btn-vista"          onclick="showTab('vista')">Vista hotel</button>
+    <button class="tab"        id="tab-btn-lista"          onclick="showTab('lista')">Lista del día</button>
+    <button class="tab"        id="tab-btn-distribucion"   onclick="showTab('distribucion')">Distribución</button>
+    <button class="tab"        id="tab-btn-horario"        onclick="showTab('horario')">Horario</button>
+    <button class="tab"        id="tab-btn-colaboradores"  onclick="showTab('colaboradores')">Equipo</button>
+    <button class="tab"        id="tab-btn-config"         onclick="showTab('config')">Ajustes</button>
+  </div>
+
+  <!-- VISTA HOTEL -->
+  <div id="tab-vista" class="tab-content">
+    <div class="summary-bar" id="summary-bar"></div>
+    <div class="legend" id="legend-vista"></div>
+    <div id="floors-container"></div>
+  </div>
+
+  <!-- LISTA DEL DÍA -->
+  <div id="tab-lista" class="tab-content" style="display:none;">
+    <div class="alert-banner" id="alert-banner"></div>
+    <div id="list-container"></div>
+  </div>
+
+  <!-- DISTRIBUCIÓN -->
+  <div id="tab-distribucion" class="tab-content" style="display:none;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0.75rem;">
+      <button class="btn-sm rose" onclick="autoDistribute()">Distribuir automáticamente</button>
+      <button class="btn-sm" onclick="clearDist()">Limpiar</button>
+      <button class="btn-sm" onclick="saveDist()">Guardar distribución</button>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:0.75rem;background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius-md);padding:3px;width:fit-content;">
+      <button class="btn-sm active" id="dmode-click" onclick="setDistMode('click')" style="border:none;">Selección</button>
+      <button class="btn-sm" id="dmode-drag" onclick="setDistMode('drag')" style="border:none;">Arrastrar</button>
+      <button class="btn-sm" id="dmode-modal" onclick="setDistMode('modal')" style="border:none;">Por habitación</button>
+    </div>
+    <p class="err" id="dist-info" style="display:none;color:var(--text-mid);font-size:12px;"></p>
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;">
+      <div id="dist-floors"></div>
+      <div id="dist-collabs"></div>
+    </div>
+  </div>
+
+  <!-- HORARIO SEMANAL -->
+  <div id="tab-horario" class="tab-content" style="display:none;">
+    <div class="schedule-header">
+      <h3>Horario semanal</h3>
+      <div class="week-nav">
+        <button class="btn-sm" onclick="changeWeek(-1)">&#8249;</button>
+        <span id="week-label" style="font-size:13px;color:var(--text-mid);white-space:nowrap;"></span>
+        <button class="btn-sm" onclick="changeWeek(1)">&#8250;</button>
+      </div>
+    </div>
+    <div class="week-grid" id="week-grid"></div>
+    <div class="day-edit-panel" id="day-edit-panel"></div>
+  </div>
+
+  <!-- EQUIPO -->
+  <div id="tab-colaboradores" class="tab-content" style="display:none;">
+    <div id="collab-list"></div>
+    <div style="background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-top:0.5rem;">
+      <p style="font-size:13px;font-weight:500;color:var(--text-dark);margin-bottom:0.75rem;">Agregar colaboradora</p>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="new-collab-input" placeholder="Nombre completo..." style="flex:1;margin:0;"/>
+        <button class="btn-save" onclick="addCollab()" style="flex:none;padding:10px 16px;">Agregar</button>
+      </div>
+    </div>
+    <div style="background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-top:0.75rem;">
+      <p style="font-size:13px;font-weight:500;color:var(--text-dark);margin-bottom:0.75rem;">Gouvernantes</p>
+      <div id="gov-list"></div>
+      <div style="display:flex;gap:8px;margin-top:0.5rem;">
+        <input type="text" id="new-gov-input" placeholder="Nombre gouvernante..." style="flex:1;margin:0;"/>
+        <button class="btn-save" onclick="addGov()" style="flex:none;padding:10px 16px;">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AJUSTES -->
+  <div id="tab-config" class="tab-content" style="display:none;">
+    <div class="config-card">
+      <h3 class="config-title">Código de acceso</h3>
+      <div class="config-row"><label>Código actual</label><input type="password" id="cfg-old" placeholder="Código actual"/></div>
+      <div class="config-row"><label>Nuevo código</label><input type="password" id="cfg-new" placeholder="Nuevo código"/></div>
+      <div class="config-row"><label>Confirmar</label><input type="password" id="cfg-confirm" placeholder="Repetir código"/></div>
+      <button class="btn-primary" onclick="changeCode()">Cambiar código</button>
+      <p class="err" id="cfg-err"></p>
+      <p class="ok-msg" id="cfg-ok">Código actualizado.</p>
+    </div>
+    <div class="config-card">
+      <h3 class="config-title">Instalar como app (PWA)</h3>
+      <div class="pwa-instructions">
+        <p><strong>iPhone / iPad:</strong> Safari → compartir → "Agregar a pantalla de inicio"</p>
+        <p><strong>Android:</strong> Chrome → menú → "Agregar a pantalla de inicio"</p>
+        <p><strong>Computadora:</strong> ícono de instalar en barra de Chrome/Edge</p>
+      </div>
+      <button class="btn-primary" id="pwa-btn" style="display:none;" onclick="triggerInstall()">Instalar ahora</button>
+    </div>
+    <div class="config-card">
+      <h3 class="config-title">Datos</h3>
+      <button class="add-btn" onclick="exportJSON()">Exportar respaldo (JSON)</button>
+      <button class="add-btn danger" onclick="resetAll()">Restablecer todos los datos</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL HABITACIÓN -->
+<div id="modal-room" class="modal-overlay">
+  <div class="modal-box">
+    <p class="modal-title" id="mroom-title">Habitación 000</p>
+    <p class="modal-sub" id="mroom-sub"></p>
+    <div class="mrow"><label>Tipo de servicio</label>
+      <select id="mroom-type">
+        <option value="vacant">Vacía</option>
+        <option value="rest-normal">Rest normal</option>
+        <option value="rest-especial">Rest especial</option>
+        <option value="rest-super">Rest súper-especial</option>
+        <option value="depart">Depart normal</option>
+        <option value="dnd">DND (No molestar)</option>
+        <option value="retouche">Retouche</option>
+        <option value="propre">Propre / Inspeccionada</option>
+      </select>
+    </div>
+    <div class="mrow"><label>Tipo de cama</label>
+      <select id="mroom-bed">
+        <option value="K">K — King</option>
+        <option value="Q">Q — Queen</option>
+        <option value="SK">SK — Suite King</option>
+        <option value="D">D — Double</option>
+      </select>
+    </div>
+    <div class="mrow"><label>Noches de estancia</label>
+      <select id="mroom-nights">
+        <option value="0">—</option>
+        <option value="1">1 noche</option>
+        <option value="2">2 noches</option>
+        <option value="3">3 noches</option>
+        <option value="4">4+ noches</option>
+      </select>
+    </div>
+    <div class="mrow"><label>Colaboradora</label>
+      <select id="mroom-collab"><option value="">Sin asignar</option></select>
+    </div>
+    <div class="mrow-full">
+      <label class="inspect-toggle">
+        <input type="checkbox" id="mroom-inspected"/>
+        <span>Habitación inspeccionada (OK)</span>
+      </label>
+    </div>
+    <div class="mrow-full">
+      <label style="font-size:13px;color:var(--text-mid);display:block;margin-bottom:4px;">Notas / Comentarios</label>
+      <textarea id="mroom-notes" placeholder="Observaciones, DND, retouche, pedidos especiales..."></textarea>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-room')">Cancelar</button>
+      <button class="btn-save" onclick="saveRoom()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BÚSQUEDA -->
+<div id="modal-search" class="modal-overlay">
+  <div class="modal-box">
+    <p class="modal-title">Buscar habitación</p>
+    <div class="search-wrap">
+      <input type="text" id="search-input" placeholder="Número: 302, 115, 001..." maxlength="3"/>
+      <button class="btn-save" onclick="doSearch()">Buscar</button>
+    </div>
+    <div id="search-result"></div>
+    <div class="m-actions"><button class="btn-cancel" onclick="closeModal('modal-search')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL AVANZAR DÍA -->
+<div id="modal-advance" class="modal-overlay">
+  <div class="modal-box">
+    <p class="modal-title">Avanzar al día siguiente</p>
+    <p class="modal-sub">Se actualizarán los estados de limpieza según las noches registradas. Los Depart pasan a Vacía. Las habitaciones Propre/Inspeccionada mantienen su estado.</p>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-advance')">Cancelar</button>
+      <button class="btn-save" onclick="doAdvanceDay()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SETUP CÓDIGO -->
+<div id="modal-setup" class="modal-overlay">
+  <div class="modal-box">
+    <p class="modal-title">Configurar código de acceso</p>
+    <p class="modal-sub">Define el código con el que ingresarás al sistema.</p>
+    <div class="mrow"><label>Código</label><input type="password" id="setup-in" placeholder="Ej: gouv2024"/></div>
+    <div class="mrow"><label>Confirmar</label><input type="password" id="setup-in2" placeholder="Repetir código"/></div>
+    <p class="err" id="setup-err"></p>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-setup')">Cancelar</button>
+      <button class="btn-save" onclick="saveSetupCode()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DISTRIBUCIÓN POR HAB -->
+<div id="modal-dist-room" class="modal-overlay">
+  <div class="modal-box">
+    <p class="modal-title" id="mdr-title">Habitación 000</p>
+    <p class="modal-sub" id="mdr-sub"></p>
+    <div class="mrow"><label>Asignar a</label>
+      <select id="mdr-sel"><option value="">Sin asignar</option></select>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-dist-room')">Cancelar</button>
+      <button class="btn-save" onclick="saveDistRoom()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/distribucion.js"></script>
+<script src="js/horario.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/sw-register.js"></script>
+</body>
+</html>
